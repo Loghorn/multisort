@@ -1,6 +1,6 @@
 {
   "name": "multisort",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "description": "Sort an array using any number of separate, ranked criteria",
   "main": "multisort.js",
   "scripts": {
