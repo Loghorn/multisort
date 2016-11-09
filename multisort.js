@@ -55,6 +55,8 @@
       return makeStringEvaluator(input);
     } else if (isNumber(input)) {
       return makeNumericalEvaluator(input);
+    } else if (isObject(input)) {
+      return makeCustomEvaluator(input);
     }
     throw "Improper input for comparator!"
   };
@@ -63,7 +65,20 @@
   var makeFunctionalEvaluator = function(input) {
     return {
       func: input,
-      invert: false
+      invert: false,
+      custom: false
+    }
+  }
+
+  // Custom evaluators don't need any transformation.
+  var makeCustomEvaluator = function(input) {
+    if (!isFunction(input.comparer)) {
+      throw "Improper input for comparator!"
+    }
+    return {
+      func: input.comparer,
+      invert: input.invert || false,
+      custom: true
     }
   }
 
@@ -72,7 +87,8 @@
   var makeNumericalEvaluator = function(input) {
     return {
       func: function(item) {return item},
-      invert: (input < 0)
+      invert: (input < 0),
+      custom: false
     }
   };
 
@@ -93,12 +109,14 @@
       input = input.slice(0, -1);
       return {
         func: function(item) {return nestedProperty(item, input) != null},
-        invert: invert
+        invert: invert,
+        custom: false
       }
     } else {
       return {
         func: function(item) {return nestedProperty(item, input)},
-        invert: invert
+        invert: invert,
+        custom: false
       }
     }
   };
@@ -142,6 +160,10 @@
     return typeof input === 'string';
   };
 
+  var isObject = function(input) {
+    return typeof input === 'object';
+  };
+
   return function(toSort, sortings) {
     // Allow partial application.
     if (arguments[1] == null) {
@@ -164,14 +186,24 @@
       sortFunction.comparator = function(a, b) {
         for (var i = 0; i < evaluators.length; i++) {
           var evaluator = evaluators[i];
+          var custom = evaluator.custom;
           var invert = evaluator.invert;
-          var aValue = evaluator.func(a);
-          var bValue = evaluator.func(b);
+          if (custom) {
+            var cRslt = evaluator.func(a, b);
+            if (cRslt > 0) {
+              return invert ? -1 : 1;
+            } else if (cRslt < 0) {
+              return invert ? 1 : -1;
+            }
+          } else {
+            var aValue = evaluator.func(a);
+            var bValue = evaluator.func(b);
 
-          if (aValue > bValue) {
-            return invert ? -1 : 1;
-          } else if (bValue > aValue) {
-            return invert ? 1 : -1;
+            if (aValue > bValue) {
+              return invert ? -1 : 1;
+            } else if (bValue > aValue) {
+              return invert ? 1 : -1;
+            }
           }
         }
         return 0;
