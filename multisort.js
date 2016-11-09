@@ -34,7 +34,7 @@
       var item = input[i];
       input[i] = {
         item: item,
-        values: mapArray(evaluators, function(evaluator) {return evaluator.func(item)})
+        values: mapArray(evaluators, function(evaluator) {return evaluator.custom ? item : evaluator.func(item)})
       }
     }
   }
@@ -219,14 +219,25 @@
       var aValues = a.values;
       var bValues = b.values;
       for (var i = 0, len = evaluators.length; i < len; i++) {
-        var invert = evaluators[i].invert;
+        var evaluator = evaluators[i];
+        var custom = evaluator.custom;
+        var invert = evaluator.invert;
         var aValue = aValues[i];
         var bValue = bValues[i];
 
-        if (aValue > bValue) {
-          return invert ? -1 : 1;
-        } else if (bValue > aValue) {
-          return invert ? 1 : -1;
+        if (custom) {
+          var cRslt = evaluator.func(aValue, bValue);
+          if (cRslt > 0) {
+            return invert ? -1 : 1;
+          } else if (cRslt < 0) {
+            return invert ? 1 : -1;
+          }
+        } else {
+          if (aValue > bValue) {
+            return invert ? -1 : 1;
+          } else if (bValue > aValue) {
+            return invert ? 1 : -1;
+          }
         }
       }
       return 0;
